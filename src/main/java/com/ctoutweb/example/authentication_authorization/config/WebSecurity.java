@@ -41,6 +41,7 @@ public class WebSecurity {
 					.requestMatchers("/api/v1/auth/**").permitAll()
 					.requestMatchers("/api/v1/home").permitAll()
 					.requestMatchers("/api/v1/user/**").permitAll()
+					.requestMatchers("/api/v1/file/**").permitAll()
 					.anyRequest().authenticated());
 		
 		return http.build();		
