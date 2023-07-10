@@ -28,5 +28,17 @@ public class HandlerException {
 		ErrorResponse response = new ErrorResponse(ex.getMessage());
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
+	
+	@ExceptionHandler(value= {DeleteFileException.class})
+	public ResponseEntity<ErrorResponse>DeleteFileException(DeleteFileException ex, WebRequest request){
+		ErrorResponse response = new ErrorResponse(ex.getMessage());
+		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+	}
+	
+	@ExceptionHandler(value= {FindUserFileException.class})
+	public ResponseEntity<ErrorResponse>FindUserFileException(FindUserFileException ex, WebRequest request){
+		ErrorResponse response = new ErrorResponse(ex.getMessage());
+		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+	}
 
 }

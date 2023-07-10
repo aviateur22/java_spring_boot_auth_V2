@@ -89,13 +89,13 @@ public class UserFileEntity {
 	/**
 	 * @return the user_id
 	 */
-	public Long getUser_id() {
+	public Long getUserId() {
 		return userId;
 	}
 	/**
 	 * @param user_id the user_id to set
 	 */
-	public void setUser_id(Long userId) {
+	public void setUserId(Long userId) {
 		this.userId = userId;
 	}
 	/**
