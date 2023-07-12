@@ -4,32 +4,43 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
+import com.ctoutweb.example.authentication_authorization.dto.FilePathDto;
 import com.ctoutweb.example.authentication_authorization.entity.UserFileEntity;
 import com.ctoutweb.example.authentication_authorization.exception.DeleteFileException;
 import com.ctoutweb.example.authentication_authorization.exception.FindUserFileException;
-import com.ctoutweb.example.authentication_authorization.model.FileResponse;
+import com.ctoutweb.example.authentication_authorization.exception.SchemaValidationException;
+import com.ctoutweb.example.authentication_authorization.model.UploadFileRequest;
 import com.ctoutweb.example.authentication_authorization.repository.FileRepositoryImp;
 import com.ctoutweb.example.authentication_authorization.security.UserPrincipal;
 import com.ctoutweb.example.authentication_authorization.service.storage.StorageServiceImp;
+import com.ctoutweb.example.authentication_authorization.validator.ObjectValidator;
 
 @Service
 public class UserFileService {
 	
 	private final StorageServiceImp storageService;
 	private final FileRepositoryImp fileRepository;	
+	private final ObjectValidator<UploadFileRequest> uploadFileValidation;
 	
-	public UserFileService(StorageServiceImp storageService, FileRepositoryImp fileRepository) {
+	public UserFileService(StorageServiceImp storageService, FileRepositoryImp fileRepository, ObjectValidator<UploadFileRequest> uploadFileValidation) {
 		super();
 		this.storageService = storageService;
 		this.fileRepository = fileRepository;
+		this.uploadFileValidation = uploadFileValidation;
 	}
 
-	public  String upload(MultipartFile file, String fileDescription, UserPrincipal user) {
-		UserFileEntity userFile = storageService.saveFile(file, fileDescription, user);		
-		fileRepository.save(userFile);
-		return null;
+	public  String upload(UploadFileRequest request, UserPrincipal user) {
+		
+		String validationError = uploadFileValidation.validate(request); 
+		
+		if(!validationError.isEmpty()){
+			throw new SchemaValidationException(validationError);
+		}	
+		
+		UserFileEntity userFile = storageService.saveFile(request, user);		
+		long fileId = fileRepository.save(userFile);
+		return String.valueOf(fileId);
 	}
 	
 	public String deleteFileById(Long id) {
@@ -43,29 +54,24 @@ public class UserFileService {
 		return null;
 	}
 	
-	public List<FileResponse> findFileByUserId(Long id){	
+	public List<FilePathDto> findFileByUserId(Long id){	
 		
 	return fileRepository.findFileByUserId(id).orElseThrow()
 				.stream()
-				.map(userFile->new FileResponse(
+				.map(userFile->new FilePathDto(
 						userFile.getId(),
 						userFile.getFileDescription(),
-						userFile.getFileName(),
-						storageService.getFileUri(userFile),
-						userFile.getFileType()))
+						userFile.getPath()))
 				.collect(Collectors.toList());	
 	}
 	
-	public FileResponse download(Long id) {
+	public FilePathDto download(Long id) {
 		UserFileEntity userFile = fileRepository.findFileById(id).orElseThrow(()-> new FindUserFileException("fichier non présent en base de données"));
-		String fileUri = storageService.getFileUri(userFile);	
 		
-		FileResponse file = new FileResponse.FileBuilder()
+		FilePathDto file = new FilePathDto.FileBuilder()
 				.id(userFile.getId())
 				.description(userFile.getFileDescription())
-				.fileName(userFile.getFileName())
-				.fileType(userFile.getFileType())
-				.fileUri(fileUri)
+				.path(userFile.getPath())
 				.build();
 		System.out.println(file);
 		

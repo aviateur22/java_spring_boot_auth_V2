@@ -9,12 +9,16 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ctoutweb.example.authentication_authorization.dto.FilePathDto;
+import com.ctoutweb.example.authentication_authorization.entity.UserFileEntity;
 import com.ctoutweb.example.authentication_authorization.mapper.resultSetToEntity.RoleMapper;
 import com.ctoutweb.example.authentication_authorization.mapper.resultSetToEntity.UserMapper;
 import com.ctoutweb.example.authentication_authorization.model.RegisterRequest;
@@ -38,6 +42,7 @@ public class UserRepositoryImp implements UserRepository {
 	}
 
 
+	@SuppressWarnings("null")
 	@Override
 	@Transactional
 	public Long save(RegisterRequest request) {
@@ -77,6 +82,7 @@ public class UserRepositoryImp implements UserRepository {
 		return null;
 	}
 
+	@SuppressWarnings("null")
 	@Override
 	@Transactional
 	public Optional<User> findById(long id) {		
@@ -85,7 +91,7 @@ public class UserRepositoryImp implements UserRepository {
 				"SELECT u.*, c.id AS cityId, c.name, c.zip, c.created_at AS cCreatedAt, c.updated_at AS cUpdatedAt "
 				+ "FROM users AS u "
 				+ "JOIN city AS c "
-				+ "ON u.city_id=c.id "
+				+ "ON u.city_id=c.id "				
 				+ "WHERE u.id=? "
 				+ "LIMIT 1";
 		
@@ -93,7 +99,9 @@ public class UserRepositoryImp implements UserRepository {
 				"SELECT * FROM role_user "
 				+ "JOIN role "
 				+ "ON role_user.role_id=role.id "
-				+ "WHERE user_id=?";		
+				+ "WHERE user_id=?";
+		
+		String filesQuery =  "SELECT * FROM file_user WHERE user_id = ?";
 		
 		try {			
 			
@@ -102,13 +110,17 @@ public class UserRepositoryImp implements UserRepository {
 			
 			List<com.ctoutweb.example.authentication_authorization.model.Role> userRoles = jdbcTemplate.query(roleQuery,			
 				(rs, rowNum)->roleMapper.mapRow(rs)	
-			, id);			
+			, id);
+			
 		
 			List<Role> roles = userRoles
 					.stream()
 					.map(e->Role.valueOf(e.getRoleName().toUpperCase())).collect(Collectors.toList());
 			
+			List<UserFileEntity> files = jdbcTemplate.query(filesQuery, BeanPropertyRowMapper.newInstance(UserFileEntity.class), id);
+			
 			user.setRoles(roles);
+			user.setFiles(files);
 			return Optional.of(user);		
 			
 		} catch (IncorrectResultSizeDataAccessException e) {
@@ -124,7 +136,7 @@ public class UserRepositoryImp implements UserRepository {
 				"SELECT u.*, c.id AS cityId, c.name, c.zip, c.created_at AS cCreatedAt, c.updated_at AS cUpdatedAt "
 				+ "FROM users AS u "
 				+ "JOIN city AS c "
-				+ "ON u.city_id=c.id "
+				+ "ON u.city_id=c.id "		
 				+ "WHERE email=? "
 				+ "LIMIT 1";
 		
@@ -132,23 +144,28 @@ public class UserRepositoryImp implements UserRepository {
 				"SELECT * FROM role_user "
 				+ "JOIN role "
 				+ "ON role_user.role_id=role.id "
-				+ "WHERE user_id=?";		
+				+ "WHERE user_id=?";
+		
+		String filesQuery =  "SELECT * FROM file_user WHERE user_id = ?";
 		
 		try {
-			//User user = jdbcTemplate.queryForObject(userQuery, BeanPropertyRowMapper.newInstance(User.class), email);
+			//User user = jdbcTemplate.queryForObject(userQuery, BeanPropertyRowMapper.newInstance(User.class), email);			
 			
 			User user = jdbcTemplate.queryForObject(userQuery, 
 				(rs, rowNum)-> userMapper.mapRow(rs), email);
 			
 			List<com.ctoutweb.example.authentication_authorization.model.Role> userRoles = jdbcTemplate.query(roleQuery,			
 				(rs, rowNum)->roleMapper.mapRow(rs)	
-			, user.getId());			
+			, user.getId());
+			
+			List<UserFileEntity> files = jdbcTemplate.query(filesQuery, BeanPropertyRowMapper.newInstance(UserFileEntity.class),  user.getId());
 		
 			List<Role> roles = userRoles
 					.stream()
 					.map(e->Role.valueOf(e.getRoleName().toUpperCase())).collect(Collectors.toList());
 			
 			user.setRoles(roles);
+			user.setFiles(files);
 			return Optional.of(user);		
 			
 		} catch (IncorrectResultSizeDataAccessException e) {

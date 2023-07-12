@@ -40,5 +40,11 @@ public class HandlerException {
 		ErrorResponse response = new ErrorResponse(ex.getMessage());
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
+	
+	@ExceptionHandler(value= {FileExtensionException.class})
+	public ResponseEntity<ErrorResponse>FileExtensionException(FileExtensionException ex, WebRequest request){
+		ErrorResponse response = new ErrorResponse(ex.getMessage());
+		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+	}
 
 }

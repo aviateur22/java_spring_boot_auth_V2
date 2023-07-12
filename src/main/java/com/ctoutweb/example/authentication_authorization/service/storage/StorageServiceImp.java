@@ -19,6 +19,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ctoutweb.example.authentication_authorization.entity.UserFileEntity;
 import com.ctoutweb.example.authentication_authorization.exception.DeleteFileException;
+import com.ctoutweb.example.authentication_authorization.exception.FileExtensionException;
+import com.ctoutweb.example.authentication_authorization.model.UploadFileRequest;
 import com.ctoutweb.example.authentication_authorization.security.UserPrincipal;
 
 @Service
@@ -31,35 +33,41 @@ public class StorageServiceImp implements StorageService {
 	}
 
 	@Override
-	public UserFileEntity saveFile(MultipartFile file, String fileDescription, UserPrincipal user) {
+	public UserFileEntity saveFile(UploadFileRequest request, UserPrincipal user) {
 		try {
+			MultipartFile file = request.getFile();
 			
-			this.isFileExtensionValid(file);
+			String fileDescription = request.getDescription();
+			
+			String fileExtension = this.getFileExtension(file);			
 			
 			String UUIDName = this.generateUUIDName(file.getOriginalFilename());
-			String fileName = UUIDName + "." + getFileExtension(file.getContentType());
+			String fileName = UUIDName + "." + fileExtension;
 			
 			Path filePath = this.root.resolve(fileName);			
 			Files.copy(file.getInputStream(), filePath);
 			
-			UserFileEntity fileData = this.getUserFileEntity(file, String.valueOf(filePath), fileName, fileDescription, user.getId());			
-			return fileData;
+			return this.getUserFileEntity(file, this.getFilePath(fileName), fileName, fileDescription, fileExtension, user.getId());			
 			
 		} catch (Exception e) {
 			
 			if (e instanceof FileAlreadyExistsException) {
 		        throw new RuntimeException("A file of that name already exists.");
-		      }
+		    }
+			
+			
+			if(e instanceof FileExtensionException) {
+				throw new FileExtensionException(request.getFile().getOriginalFilename() + " n'est pas au format PDF, JPG ou PNG");
+			}
 
 		      throw new RuntimeException(e.getMessage());
 		}
 		
 	}
-
-	@Override
-	public String getFileUri(UserFileEntity file) {
+	
+	private String getFilePath(String fileName) {
 		try {
-			Path path = root.resolve(file.getFileName());
+			Path path = root.resolve(fileName);
 			Resource resource = new UrlResource(path.toUri());
 			
 			if(!resource.exists() || !resource.isReadable()) {
@@ -96,23 +104,8 @@ public class StorageServiceImp implements StorageService {
 		}
 	}
 	
-	private String getFileExtension(String mimeType) {
-		switch(mimeType.toLowerCase()) {
-			case "application/pdf": {
-				return "pdf";			
-			}		
-			case "image/png": {
-				return "png";				
-			}			
-			case "image/jpeg": {
-				return "jpg";				
-			}	
-			default: throw new RuntimeException("file is not accepted");
-		}
-	}
-	
 	@SuppressWarnings("null")
-	private boolean isFileExtensionValid(MultipartFile file) throws IOException {
+	private String getFileExtension(MultipartFile file) throws IOException {
 		InputStream fileStream = file.getInputStream();		
 		byte[] magicBytes = new byte[3];		
 		fileStream.read(magicBytes);
@@ -121,22 +114,22 @@ public class StorageServiceImp implements StorageService {
 		switch(file.getContentType().toLowerCase()) {
 			case "application/pdf": {
 				if(!FileType.PDF.is(magicBytes)) throw new RuntimeException("file is not a valid PDF");
+				return "pdf";
 				
 			}			
-			break;
 			
 			case "image/png": {
-				if(!FileType.PNG.is(magicBytes)) throw new RuntimeException("file is not a valid PNG");				
-			}
-			break;
+				if(!FileType.PNG.is(magicBytes)) throw new RuntimeException("file is not a valid PNG");
+				return "png";
+			}			
 			
 			case "image/jpeg": {
-				if(!FileType.JPEG.is(magicBytes)) throw new RuntimeException("file is not a valid JPEG");				
+				if(!FileType.JPEG.is(magicBytes)) throw new RuntimeException("file is not a valid JPEG");
+				return "jpg";
 			}
-			break;			
-			default: throw new RuntimeException("file is not accepted");
-		}
-		return true;
+						
+			default: throw new FileExtensionException();
+		}		
 	}
 	
 	private String generateUUIDName(String originalName) {
@@ -144,13 +137,13 @@ public class StorageServiceImp implements StorageService {
 		return String.valueOf(UUID.nameUUIDFromBytes((originalName +" " + currentTimeMillis).getBytes()));
 	}
 	
-	private UserFileEntity getUserFileEntity(MultipartFile file, String filePath, String filename, String fileDescription, Long userId) {
+	private UserFileEntity getUserFileEntity(MultipartFile file, String filePath, String filename, String fileDescription, String fileExtension, Long userId) {
 		Instant createdAt = Instant.now();
 		return new UserFileEntity.UserFileBuilder()
 				.fileName(filename)
 				.path(filePath)
 				.fileDescription(fileDescription)
-				.fileType(this.getFileExtension(file.getContentType()))
+				.fileType(fileExtension)
 				.Userid(userId)
 				.createdAt(Timestamp.from(createdAt))
 				.updatedAt(Timestamp.from(createdAt))

@@ -28,6 +28,7 @@ public class FileRepositoryImp implements FileRepository {
 		this.jdbcTemplate = jdbcTemplate;
 	}
 
+	@SuppressWarnings("null")
 	@Override
 	@Transactional
 	public int save(UserFileEntity fileData) {

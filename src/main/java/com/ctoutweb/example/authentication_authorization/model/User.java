@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
+import com.ctoutweb.example.authentication_authorization.entity.UserFileEntity;
 import com.ctoutweb.example.authentication_authorization.security.Role;
 
 public class User {
@@ -12,6 +13,7 @@ public class User {
 	private String email;
 	private String password;
 	private List<Role> roles;
+	private List<UserFileEntity> files;
 	private City city;
 	private Date createdAt;
 	private Date updatedAt;
@@ -22,6 +24,7 @@ public class User {
 		this.email = builder.email;
 		this.password = builder.password;
 		this.roles = builder.roles;
+		this.files = builder.files;
 		this.city = builder.city; 
 		this.createdAt = builder.createdAt;
 		this.updatedAt = builder.updatedAt;
@@ -73,6 +76,14 @@ public class User {
 
 	public void setRoles(List<Role> roles) {
 		this.roles = roles;
+	}
+
+	public List<UserFileEntity> getFiles() {
+		return files;
+	}
+
+	public void setFiles(List<UserFileEntity> files) {
+		this.files = files;
 	}
 
 	public City getCity() {
@@ -135,6 +146,7 @@ public class User {
 		private String email;
 		private String password;
 		private List<Role> roles;
+		private List<UserFileEntity> files;
 		private City city;
 		private Date createdAt;
 		private Date updatedAt;
@@ -157,6 +169,11 @@ public class User {
 		
 		public UserBuilder roles(List<Role> roles) {
 			this.roles = roles;
+			return this;
+		}
+		
+		public UserBuilder files(List<UserFileEntity> files) {
+			this.files = files;
 			return this;
 		}
 		
